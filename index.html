@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Tools</title>
+    <style>
+        :root {
+            --primary-purple: #635bff;
+            --primary-purple-hover: #5851db;
+            --text-primary: #1a1f36;
+            --text-secondary: #4f566b;
+            --background: #f7fafc;
+            --surface: #ffffff;
+            --border: #e3e8ee;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        .section {
+            background-color: var(--surface);
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 480px;
+            height: 640px;
+            margin: 0 auto;
+            background-color: black;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .text-overlay {
+            position: absolute;
+            cursor: move;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 4px;
+            border-radius: 4px;
+            min-width: 50px;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button, select, input[type="text"] {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            background-color: white;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .primary-button {
+            background-color: var(--primary-purple);
+            color: white;
+            border: none;
+        }
+
+        .primary-button:hover {
+            background-color: var(--primary-purple-hover);
+        }
+
+        .youtube-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .youtube-preview img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .export-options {
+            margin-top: 20px;
+            padding: 16px;
+            background-color: var(--background);
+            border-radius: 8px;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .export-progress {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: var(--background);
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Video Editor Section -->
+        <div class="section">
+            <h1 class="section-title">Video Text Editor</h1>
+            
+            <div class="upload-container">
+                <input type="file" id="fileInput" accept="video/*" style="display: none;">
+                <button class="primary-button" onclick="document.getElementById('fileInput').click()">
+                    Choose Video File
+                </button>
+            </div>
+
+            <div id="noVideoMessage" class="no-video-message">
+                No video selected. Please upload a video to begin.
+            </div>
+            
+            <div class="video-wrapper" id="videoWrapper" style="display: none;">
+                <video id="myVideo" controls>
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <div class="text-controls" id="textControls" style="display: none;">
+                <input type="text" id="textInput" placeholder="Enter text to add to video">
+                <div class="controls">
+                    <input type="color" id="textColor" class="color-picker" value="#ffffff">
+                    <select id="fontSize">
+                        <option value="20">Small</option>
+                        <option value="30" selected>Medium</option>
+                        <option value="40">Large</option>
+                    </select>
+                    <button class="primary-button" onclick="addText()">Add Text</button>
+                    <button class="secondary-button" onclick="undoLastText()">Undo</button>
+                </div>
+            </div>
+            
+            <div class="export-options" id="exportOptions" style="display: none;">
+                <select id="exportFormat">
+                    <option value="video/mp4;codecs=h264">MP4 (H.264)</option>
+                    <option value="video/webm;codecs=h264">WebM (H.264)</option>
+                    <option value="video/webm">WebM (VP8)</option>
+                </select>
+                <button class="primary-button" onclick="startExport()">Export Video</button>
+            </div>
+            <div id="exportProgress" class="export-progress"></div>
+        </div>
+
+        <!-- YouTube Audio Downloader Section -->
+        <div class="section">
+            <h1 class="section-title">YouTube Audio Downloader</h1>
+            <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here">
+            <div class="controls">
+                <button class="primary-button" onclick="getYoutubeInfo()">Get Audio</button>
+            </div>
+            <div id="youtubePreview" class="youtube-preview"></div>
+            <div id="downloadOptions" style="display: none;">
+                <button class="primary-button" onclick="downloadAudio()">Download MP3</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const video = document.getElementById('myVideo');
+        const videoWrapper = document.getElementById('videoWrapper');
+        const noVideoMessage = document.getElementById('noVideoMessage');
+        const textControls = document.getElementById('textControls');
+        const exportButton = document.getElementById('exportButton');
+        let textOverlays = [];
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                video.src = url;
+                videoWrapper.style.display = 'block';
+                textControls.style.display = 'block';
+                exportButton.style.display = 'inline-block';
+                noVideoMessage.style.display = 'none';
+            }
+        });
+
+        function addText() {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+
+            const textElement = document.createElement('div');
+            textElement.className = 'text-overlay';
+            textElement.textContent = text;
+            textElement.style.color = document.getElementById('textColor').value;
+            textElement.style.fontSize = document.getElementById('fontSize').value + 'px';
+            textElement.style.left = '50%';
+            textElement.style.top = '50%';
+            textElement.style.transform = 'translate(-50%, -50%)';
+            
+            videoWrapper.appendChild(textElement);
+            textOverlays.push(textElement);
+            
+            makeDraggable(textElement);
+            document.getElementById('textInput').value = '';
+        }
+
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            element.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                const rect = videoWrapper.getBoundingClientRect();
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+                
+                if (newTop >= 0 && newTop <= rect.height - element.offsetHeight) {
+                    element.style.top = newTop + "px";
+                }
+                if (newLeft >= 0 && newLeft <= rect.width - element.offsetWidth) {
+                    element.style.left = newLeft + "px";
+                }
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        async function startExport() {
+            const formatSelect = document.getElementById('exportFormat');
+            const selectedFormat = formatSelect.value;
+            
+            const video = document.getElementById('myVideo');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const exportProgress = document.getElementById('exportProgress');
+            
+            // Set canvas size to match video dimensions
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Setup MediaRecorder with MP4 compatible settings
+            const stream = canvas.captureStream();
+            let mediaRecorder;
+            
+            if (MediaRecorder.isTypeSupported(selectedFormat)) {
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: selectedFormat,
+                    videoBitsPerSecond: 8000000
+                });
+            } else {
+                alert('Selected format is not supported by your browser. Please choose another format.');
+                return;
+            }
+            
+            const chunks = [];
+            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Set file extension based on MIME type
+                const fileExtension = mediaRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                a.download = `video-with-text.${fileExtension}`;
+                a.click();
+                URL.revokeObjectURL(url);
+                exportProgress.style.display = 'none';
+                video.currentTime = 0;
+            };
+
+            // Prepare for recording
+            video.currentTime = 0;
+            exportProgress.style.display = 'block';
+            exportProgress.textContent = 'Preparing export...';
+            
+            mediaRecorder.start();
+            
+            function drawFrame() {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                textOverlays.forEach(overlay => {
+                    const rect = overlay.getBoundingClientRect();
+                    const videoRect = videoWrapper.getBoundingClientRect();
+                    
+                    const xPercent = (rect.left - videoRect.left) / videoRect.width;
+                    const yPercent = (rect.top - videoRect.top) / videoRect.height;
+                    
+                    ctx.font = overlay.style.fontSize + ' sans-serif';
+                    ctx.fillStyle = overlay.style.color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const x = canvas.width * xPercent + (rect.width / 2);
+                    const y = canvas.height * yPercent + (rect.height / 2);
+                    ctx.fillText(overlay.textContent, x, y);
+                });
+            }
+
+            video.play();
+            
+            const updateProgress = () => {
+                const progress = Math.round((video.currentTime / video.duration) * 100);
+                exportProgress.textContent = `Exporting: ${progress}%`;
+            };
+
+            const processFrame = async () => {
+                drawFrame();
+                updateProgress();
+                
+                if (video.currentTime < video.duration) {
+                    requestAnimationFrame(processFrame);
+                } else {
+                    mediaRecorder.stop();
+                    video.pause();
+                }
+            };
+
+            video.addEventListener('playing', () => {
+                processFrame();
+            }, { once: true });
+        }
+
+        function undoLastText() {
+            if (textOverlays.length > 0) {
+                const lastText = textOverlays.pop();
+                lastText.remove();
+            }
+        }
+
+        // YouTube Audio Downloader Functions
+        async function getYoutubeInfo() {
+            const urlInput = document.getElementById('youtubeUrl');
+            const previewDiv = document.getElementById('youtubePreview');
+            const downloadOptions = document.getElementById('downloadOptions');
+            
+            try {
+                if (!urlInput.value) {
+                    throw new Error('Please enter a YouTube URL');
+                }
+
+                let videoId;
+                try {
+                    const url = new URL(urlInput.value);
+                    if (url.hostname === 'youtu.be') {
+                        videoId = url.pathname.slice(1);
+                    } else if (url.hostname.includes('youtube.com')) {
+                        videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
+                    } else {
+                        throw new Error('Not a valid YouTube URL');
+                    }
+                } catch (e) {
+                    throw new Error('Please enter a valid YouTube URL');
+                }
+
+                if (!videoId) {
+                    throw new Error('Could not extract video ID from URL');
+                }
+
+                // Show loading state
+                previewDiv.innerHTML = '<p>Loading video information...</p>';
+                downloadOptions.style.display = 'none';
+
+                // Get video information
+                const response = await fetch(`https://youtube-to-mp32.p.rapidapi.com/yt_to_mp3?video_id=${videoId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-RapidAPI-Key': '8c1c9f0c6dmsh1a3c977a20e8d6bp1b0c4bjsn1c3c2665c2c5',
+                        'X-RapidAPI-Host': 'youtube-to-mp32.p.rapidapi.com'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!data.title) {
+                    throw new Error('Could not fetch video information');
+                }
+
+                // Display video information
+                previewDiv.innerHTML = `
+                    <img src="https://img.youtube.com/vi/${videoId}/maxresdefault.jpg" 
+                         onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'" 
+                         alt="Video Thumbnail">
+                    <p>${data.title}</p>
+                `;
+                
+                downloadOptions.innerHTML = `
+                    <button class="primary-button" onclick="downloadAudio()">Download MP3</button>
+                    <p style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                        Duration: ${data.length || 'Unknown'}
+                    </p>
+                `;
+                downloadOptions.style.display = 'block';
+                
+            } catch (error) {
+                previewDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                downloadOptions.style.display = 'none';
+            }
+        }
+
+        async function downloadAudio() {
+            const urlInput = document.getElementById('youtubeUrl');
+            const downloadOptions = document.getElementById('downloadOptions');
+            
+            try {
+                if (!urlInput.value) {
+                    throw new Error('Please enter a YouTube URL');
+                }
+
+                downloadOptions.innerHTML = '<p>Preparing download... This may take a moment.</p>';
+
+                let videoId;
+                try {
+                    const url = new URL(urlInput.value);
+                    if (url.hostname === 'youtu.be') {
+                        videoId = url.pathname.slice(1);
+                    } else if (url.hostname.includes('youtube.com')) {
+                        videoId = url.searchParams.get('v') || url.pathname.split('/').pop();
+                    }
+                } catch (e) {
+                    throw new Error('Invalid YouTube URL');
+                }
+
+                if (!videoId) {
+                    throw new Error('Could not extract video ID from URL');
+                }
+
+                // First API endpoint
+                try {
+                    const response = await fetch(`https://youtube-mp3-download1.p.rapidapi.com/dl?id=${videoId}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-RapidAPI-Key': '8c1c9f0c6dmsh1a3c977a20e8d6bp1b0c4bjsn1c3c2665c2c5',
+                            'X-RapidAPI-Host': 'youtube-mp3-download1.p.rapidapi.com'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'ok' && data.link) {
+                        // Create download link
+                        const a = document.createElement('a');
+                        a.href = data.link;
+                        a.download = `${data.title || 'youtube-audio'}.mp3`;
+                        a.click();
+                        downloadOptions.innerHTML = '<p style="color: green;">Audio download started!</p>';
+                        return;
+                    }
+                } catch (error) {
+                    console.log('First API failed, trying backup API...');
+                }
+
+                // Backup API endpoint
+                try {
+                    const response = await fetch(`https://youtube-to-mp32.p.rapidapi.com/yt_to_mp3?video_id=${videoId}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-RapidAPI-Key': '8c1c9f0c6dmsh1a3c977a20e8d6bp1b0c4bjsn1c3c2665c2c5',
+                            'X-RapidAPI-Host': 'youtube-to-mp32.p.rapidapi.com'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.Download_url) {
+                        const a = document.createElement('a');
+                        a.href = data.Download_url;
+                        a.download = `youtube-audio.mp3`;
+                        a.click();
+                        downloadOptions.innerHTML = '<p style="color: green;">Audio download started!</p>';
+                        return;
+                    }
+                } catch (error) {
+                    console.log('Backup API failed...');
+                }
+
+                // If both APIs fail
+                throw new Error('Unable to generate download link. Please try again later or try a different video.');
+
+            } catch (error) {
+                downloadOptions.innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                    <button class="primary-button" onclick="downloadAudio()" style="margin-top: 10px;">Try Again</button>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 
