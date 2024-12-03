@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Media Tools</title>
@@ -9,11 +8,12 @@
         :root {
             --primary-purple: #635bff;
             --primary-purple-hover: #5851db;
-            --text-primary: #1a1f36;
-            --text-secondary: #4f566b;
-            --background: #f7fafc;
-            --surface: #ffffff;
-            --border: #e3e8ee;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --background: #18181b;
+            --surface: #27272a;
+            --border: #3f3f46;
+            --hover: #3f3f46;
         }
 
         body {
@@ -23,6 +23,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: var(--text-primary);
             line-height: 1.6;
+            min-height: 100vh;
         }
 
         .container {
@@ -36,8 +37,8 @@
         .section {
             background-color: var(--surface);
             padding: 32px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border);
         }
 
@@ -53,8 +54,10 @@
             width: 480px;
             height: 640px;
             margin: 0 auto;
-            background-color: black;
+            background-color: #000000;
             overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
 
         video {
@@ -66,8 +69,8 @@
         .text-overlay {
             position: absolute;
             cursor: move;
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 4px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 8px;
             border-radius: 4px;
             min-width: 50px;
             text-align: center;
@@ -82,21 +85,35 @@
             flex-wrap: wrap;
         }
 
-        button, select, input[type="text"] {
+        button, select, input[type="text"], input[type="color"] {
             padding: 8px 16px;
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 500;
-            background-color: white;
-            color: var(--text-secondary);
+            background-color: var(--surface);
+            color: var(--text-primary);
             cursor: pointer;
             transition: all 0.15s ease;
+        }
+
+        button:hover, select:hover {
+            background-color: var(--hover);
         }
 
         input[type="text"] {
             width: 100%;
             box-sizing: border-box;
+            background-color: var(--background);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-secondary);
+        }
+
+        input[type="color"] {
+            width: 50px;
+            padding: 2px 4px;
         }
 
         .primary-button {
@@ -112,11 +129,15 @@
         .youtube-preview {
             margin-top: 20px;
             text-align: center;
+            background-color: var(--background);
+            padding: 20px;
+            border-radius: 8px;
         }
 
         .youtube-preview img {
             max-width: 100%;
             border-radius: 8px;
+            border: 1px solid var(--border);
         }
 
         .export-options {
@@ -124,6 +145,7 @@
             padding: 16px;
             background-color: var(--background);
             border-radius: 8px;
+            border: 1px solid var(--border);
         }
 
         #canvas {
@@ -134,14 +156,48 @@
             margin-top: 12px;
             padding: 12px;
             background-color: var(--background);
-            border-radius: 4px;
+            border-radius: 8px;
             text-align: center;
-            display: none;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .no-video-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 48px 0;
+            background-color: var(--background);
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .upload-container {
+            margin-bottom: 24px;
+            padding: 24px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            text-align: center;
+            background-color: var(--background);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+            padding-right: 32px;
+            appearance: none;
         }
 
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
+            }
+            .video-wrapper {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 9/16;
             }
         }
     </style>
@@ -172,14 +228,14 @@
             <div class="text-controls" id="textControls" style="display: none;">
                 <input type="text" id="textInput" placeholder="Enter text to add to video">
                 <div class="controls">
-                    <input type="color" id="textColor" class="color-picker" value="#ffffff">
+                    <input type="color" id="textColor" value="#ffffff">
                     <select id="fontSize">
                         <option value="20">Small</option>
                         <option value="30" selected>Medium</option>
                         <option value="40">Large</option>
                     </select>
                     <button class="primary-button" onclick="addText()">Add Text</button>
-                    <button class="secondary-button" onclick="undoLastText()">Undo</button>
+                    <button onclick="undoLastText()">Undo</button>
                 </div>
             </div>
             
